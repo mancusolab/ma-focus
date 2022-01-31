@@ -6,15 +6,15 @@ with open("README.md", "r") as fh:
 
 st.setup(
     name="pyfocus",
-    version="0.7",
-    author="Nicholas Mancuso, Ruth Johnson",
-    author_email="nicholas.mancuso@med.usc.com, ruthjohnson@ucla.com",
+    version="0.8",
+    author="Nicholas Mancuso, Ruth Johnson, Zeyun Lu",
+    author_email="nicholas.mancuso@med.usc.com, ruthjohnson@ucla.com, zeyunlu@usc.edu",
     description="Fine-map transcriptome-wide association studies",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/bogdanlab/focus",
+    url="https://github.com/mancusolab/focus",
     packages=st.find_packages(),
-    package_data={'pyfocus': ['data/ld_blocks/*.bed']},
+    package_data={'pyfocus': ['data/ld_blocks/*.bed', "data/gencode_map_v37.tsv"]},
     install_requires=[
         # this is the minimum to perform fine-mapping given a prebuilt db.
         # functions that require addtl modules will warn/raise error

@@ -1,37 +1,37 @@
 # am i optimizing prematurely? do we need this heavy machinary?
 
-
+import logging
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, sessionmaker
+import pyfocus as pf
 
 Base = declarative_base()
 
-
-session = None
-
+session = []
 
 def set_session(ssn):
     global session
-    session = ssn
+    session.append(ssn)
     return
 
 
-def get_session():
+def get_session(idx=-1):
     global session
-    return session
+    log = logging.getLogger(pf.LOG)
+    return session[idx]
 
 
-def load_db(path):
+def load_db(path, idx=-1):
     # create engine, and ensure that tables exist
-    engine = create_engine("sqlite:///{}".format(path))
+    engine = create_engine(f"sqlite:///{path}")
     Base.metadata.create_all(engine)
 
     # create a session for all db operations
     factory = sessionmaker(bind=engine)
 
     set_session(factory())
-    ssn = get_session()
+    ssn = get_session(idx)
 
     return ssn
 
