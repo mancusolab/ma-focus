@@ -10,7 +10,9 @@ FOCUS are described in:
 
 MA-FOCUS are described in:
 
-> [Multi-ancestry fine-mapping improves precision to identify causal genes in transcriptome-wide association studies]. Zeyun Lu<sup>\*</sup>, Shyamalika Gopalan<sup>\*</sup>, Dong Yuan, David V. Conti, Bogdan Pasaniuc, Alexander Gusev, Nicholas Mancuso.
+> Multi-ancestry fine-mapping improves precision to identify causal genes in transcriptome-wide association studies. Zeyun Lu<sup>\*</sup>, Shyamalika Gopalan<sup>\*</sup>, Dong Yuan, David V. Conti, Bogdan Pasaniuc, Alexander Gusev, Nicholas Mancuso.
+
+<sup>\*</sup> indicates equal contribution
 
 Installing
 ----------
