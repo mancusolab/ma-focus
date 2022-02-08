@@ -1392,6 +1392,8 @@ def build_focus_parser(subp):
                      help="Path to reference panel PLINK data. Use semicolon to separete populations.")
     fmp.add_argument("weights",
                      help="Path to weights database. Use semicolon to separete populations.")
+    fmp.add_argument("--locations", default=None,
+                      help="Path to a BED file containing windows (e.g., CHR START STOP) to fine-map over. Start and stop values may contain kb/mb modifiers. Or use default independent regions by specifying '37:EUR', '37:AFR', '37:EAS', '37:EUR-AFR', '37:EUR-EAS', '37:EAS-AFR', '37:EUR-EAS-AFR', or '38:'-prefix regions.")
 
     # fine-map location options
     fmp.add_argument("--chr", default=None,
@@ -1400,8 +1402,6 @@ def build_focus_parser(subp):
                       help="Perform imputation starting at specific location (in base pairs). Accepts kb/mb modifiers. Requires --chr to be specified.")
     fmp.add_argument("--stop", default=None,
                       help="Perform imputation until at specific location (in base pairs). Accepts kb/mb modifiers. Requires --chr to be specified.")
-    fmp.add_argument("--locations", default=None,
-                      help="Path to a BED file containing windows (e.g., CHR START STOP) to fine-map over. Start and stop values may contain kb/mb modifiers. Or use default independent regions by specifying '37:EUR', '37:AFR', '37:EAS', '37:EUR-AFR', '37:EUR-EAS', '37:EAS-AFR', '37:EUR-EAS-AFR', or '38:'-prefix regions.")
 
     # fine-map general options
     fmp.add_argument("--all-gwas-sig", default=False,

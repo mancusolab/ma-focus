@@ -865,7 +865,7 @@ def rearrange_columns(df, prior_prob):
     Re-arrange FOCUS output table columns for better user experience.
 
     :param df: pandas.DataFrame containing all the necessary FOCUS columns
-    :param prioor_prob: float use this number to back the number of genes in the block 
+    :param prioor_prob: float use this number to back the number of genes in the block
 
     :return: pandas.DataFrame containing all the necessary FOCUS columns in order of non-pop-specific parameters, pop-specific non-pips parameters, pop-specific pips parameters, and me-pips parameters.
     """
@@ -1017,7 +1017,7 @@ def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=
     # dont sort here to make plotting easier
 
     df = create_output(meta_data, attr, null_res, region)
-    # Output the partition blocks in which focus performs
+    # Output the partition blocks where focus performs
     df.insert(0, "block", block)
 
     log.info(f"Completed fine-mapping at region {block}.")
