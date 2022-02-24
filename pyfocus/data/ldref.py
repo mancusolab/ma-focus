@@ -22,8 +22,7 @@ dft_location = {"37:EUR": "ld_blocks/grch37.eur.loci.bed",
 "38:EUR-AFR": "ld_blocks/grch38.eur.afr.loci.bed",
 "38:EUR-EAS": "ld_blocks/grch38.eur.eas.loci.bed",
 "38:EAS-AFR": "ld_blocks/grch38.eas.afr.loci.bed",
-"38:EUR-EAS-AFR": "ld_blocks/grch38.eur.eas.afr.loci.bed",
-"gencode": "gencode_map_v37.tsv"}
+"38:EUR-EAS-AFR": "ld_blocks/grch38.eur.eas.afr.loci.bed"}
 
 class IndBlocks(object):
     """
@@ -96,14 +95,18 @@ class IndBlocks(object):
     def show_nrow(self):
         return len(self._regions.index)
 
+
+gencode_location = {"gencode37": "gencode/gencode_map_v37.tsv",
+"gencode38": "gencode/gencode_map_v38.tsv"}
+
 class GencodeBlocks(object):
     """
     Class to wrap/iterate approximately gencode regions
     """
 
-    CHRCOL = "chr"
+    CHRCOL = "chrom"
     STARTCOL = "start"
-    STOPCOL = "end"
+    STOPCOL = "stop"
     GENENAME = "gene_name"
 
     REQ_COLS = [CHRCOL, STARTCOL, STOPCOL, GENENAME]
@@ -111,20 +114,20 @@ class GencodeBlocks(object):
     def __init__(self, regions=None):
         if regions is None:
             raise ValueError("Please specify gencode file location")
-        elif regions == "gencode":
+        elif regions == "gencode37" or regions == "gencode38":
             try:
                 dtype_dict = {GencodeBlocks.CHRCOL: "category", GencodeBlocks.STARTCOL: int, GencodeBlocks.STOPCOL: int, GencodeBlocks.GENENAME: str}
-                gencode_blocks = pkg_resources.resource_filename(__name__, dft_location[regions])
+                gencode_blocks = pkg_resources.resource_filename(__name__, gencode_location[regions])
                 self._regions = pd.read_csv(gencode_blocks, dtype=dtype_dict, sep = "\t")
             except Exception as e:
-                raise Exception("Data folder doesn't contain gencode_map_v37.tsv " + str(e))
+                raise Exception("Data folder doesn't contain gencode files " + str(e))
         else:
             if pf.is_file(regions):
                 try:
                     dtype_dict = {GencodeBlocks.CHRCOL: "category", GencodeBlocks.STARTCOL: int, GencodeBlocks.STOPCOL: int, GencodeBlocks.GENENAME: str}
                     self._regions = pd.read_csv(regions, dtype=dtype_dict, sep='\t')
                 except Exception as e:
-                    raise Exception("Parsing your own gencode file failed. Make sure the path is correct and column has chr, start, end, and gene_name:" + str(e))
+                    raise Exception("Parsing your own gencode file failed. Make sure the path is correct and column has chr, start, stop, and gene_name:" + str(e))
             else:
                 raise Exception("Please check your gencode file path" + str(e))
 
@@ -136,19 +139,27 @@ class GencodeBlocks(object):
 
         return
 
-    def subset_by_pos(self, chrom, start, end):
-        if chrom is None or start is None or end is None:
-            raise ValueError("chrom, start, or end argument cannot be `None` in subset_by_pos")
+    def subset_by_pos(self, chrom, start, stop):
+        if chrom is None:
+            raise ValueError("chrom argument cannot be `None` in subset_by_pos")
 
-        df = self._regions.loc[(self._regions[GencodeBlocks.CHRCOL] == chrom) &
-                                (self._regions[GencodeBlocks.STARTCOL] >= start) &
-                                (self._regions[GencodeBlocks.STOPCOL] <= end)]
-
+        df = self._regions.loc[self._regions[GencodeBlocks.CHRCOL] == chrom]
         if len(df) == 0:
-            raise Warning(f"No genes found on chromosome {chrom} between {start} and {end}. Use 1e-3 instead. This warning makes no sense please check your gencode file")
+            raise ValueError(f"No gencode information found on chromosome {chrom}")
+
+        if stop is None:
+            stop = max(df[GencodeBlocks.STOPCOL])
+        if start is None:
+            start = min(df[GencodeBlocks.STARTCOL])
+
+        # grab the intervals that overap the provided start and stop positions on same chromosome
+        locs = df.loc[df.apply(lambda x: min(x[GencodeBlocks.STOPCOL], stop) - max(x[GencodeBlocks.STARTCOL], start), axis=1) > 0]
+
+        if len(locs) == 0:
+            raise Warning(f"No genes found on chromosome {chrom} between {start} and {stop}. Use 1e-3 instead. This warning makes no sense please check your gencode file")
             prior_prob = 0.001
         else:
-            prior_prob = 1 / len(df.gene_name.unique())
+            prior_prob = 1 / len(locs[GencodeBlocks.GENENAME].unique())
 
         return prior_prob
 

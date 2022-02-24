@@ -1066,7 +1066,7 @@ def run_twas(args):
                 result = pyfocus.fine_map(local_gwas, snp_weights, local_ref, block, intercept=args.intercept,
                                           max_genes=args.max_genes, ridge=args.ridge_term, prior_prob=prior_prob,
                                           credible_level=args.credible_level, plot=args.plot, min_r2pred=args.min_r2pred,
-                                          max_impute=args.max_impute, tissue_pr_gene = tissue_pr_gene)
+                                          max_impute=args.max_impute, tissue_pr_gene = tissue_pr_gene, trait = args.trait)
 
                 # fine-map can break and return early if there are issues so check for non-None result
                 if result is not None:
@@ -1394,6 +1394,8 @@ def build_focus_parser(subp):
                      help="Path to weights database. Use semicolon to separete populations.")
     fmp.add_argument("--locations", default=None,
                       help="Path to a BED file containing windows (e.g., CHR START STOP) to fine-map over. Start and stop values may contain kb/mb modifiers. Or use default independent regions by specifying '37:EUR', '37:AFR', '37:EAS', '37:EUR-AFR', '37:EUR-EAS', '37:EAS-AFR', '37:EUR-EAS-AFR', or '38:'-prefix regions.")
+    fmp.add_argument("--trait", default="trait",
+                     help="Trait name for fine-mapping.")
 
     # fine-map location options
     fmp.add_argument("--chr", default=None,
@@ -1418,8 +1420,8 @@ def build_focus_parser(subp):
                      help="Whether to include an intercept term in the model.")
     fmp.add_argument("--max-genes", type=parse_pint, default=3,
                      help="Maximum number of genes that can be causal.")
-    fmp.add_argument("--prior-prob", default="gencode",
-                     help="Type names of prior probability for a gene to be causal. 'gencode': use one over the number of all genes in the region based on gencode v37 (to use your own file, specify instead. 'numeric': use a numeric number as fixed probability, just directly specify it e.g. 1e-3. ")
+    fmp.add_argument("--prior-prob", default="gencode38",
+                     help="Type names of prior probability for a gene to be causal. 'gencode37': use one over the number of all genes in the region based on gencode v37 (to use your own file, specify the path instead). 'gencode38': use one over the number of all genes in the region based on gencode v38. 'numeric': use a numeric number as fixed probability, just directly specify it e.g. 1e-3. ")
     # fmp.add_argument("--prior-prob-numeric", type=parse_prob, default=1e-3,
     #                  help="Fixed prior probability for a gene to be causal.")
     # fmp.add_argument("--prior-prob-gencode", default=None,

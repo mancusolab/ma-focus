@@ -860,7 +860,7 @@ def num_convert(i):
 
     return nth[i]
 
-def rearrange_columns(df, prior_prob):
+def rearrange_columns(df, prior_prob, trait):
     """
     Re-arrange FOCUS output table columns for better user experience.
 
@@ -872,6 +872,7 @@ def rearrange_columns(df, prior_prob):
     n_pop = np.sum(df.columns.str.contains("pips"))
     n_pop = 1 if n_pop == 1 else n_pop - 1
     df["block_genes"] = 1 / prior_prob
+    df["trait"] = trait
     # move non-pop parameters upfront
     for i in range(n_pop):
         tmp = df.columns.str.contains(f"pop{i+1}")
@@ -896,7 +897,7 @@ def rearrange_columns(df, prior_prob):
 
     return df
 
-def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=False, max_genes=3, ridge=0.1, prior_prob=1e-3, credible_level=0.9, plot=False, max_impute=0.5, min_r2pred=0.7, tissue_pr_gene = False):
+def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=False, max_genes=3, ridge=0.1, prior_prob=1e-3, credible_level=0.9, plot=False, max_impute=0.5, min_r2pred=0.7, tissue_pr_gene = False, trait = "trait"):
     """
     Perform a TWAS and fine-map the results.
 
@@ -1027,11 +1028,11 @@ def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=
 
         # sort here and create credible set
         df = add_credible_set(df, credible_set=credible_level)
-        df = rearrange_columns(df, prior_prob)
+        df = rearrange_columns(df, prior_prob, trait)
         return df, plot_arr
 
     else:
         # sort here and create credible set
         df = add_credible_set(df, credible_set=credible_level)
-        df = rearrange_columns(df, prior_prob)
+        df = rearrange_columns(df, prior_prob, trait)
         return df
