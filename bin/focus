@@ -969,7 +969,7 @@ def run_twas(args):
                 try:
                     arg_prior_prob = float(args.prior_prob)
                     if arg_prior_prob > 0 and arg_prior_prob < 1:
-                        prior_prob = 1 / arg_prior_prob
+                        prior_prob = arg_prior_prob
                         log.info(f"Using fixed numeric prior probability {args.prior_prob}.")
                     else:
                         raise ValueError(f"Numeric prior probability {arg_prior_prob} is invalid.")
