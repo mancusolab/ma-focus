@@ -10,18 +10,12 @@ import scipy.linalg as lin
 from pandas_plink import read_plink
 
 dft_location = {"37:EUR": "ld_blocks/grch37.eur.loci.bed",
-"37:AFR": "ld_blocks/grch37.afr.loci.bed",
-"37:EAS": "ld_blocks/grch37.eas.loci.bed",
 "37:EUR-AFR": "ld_blocks/grch37.eur.afr.loci.bed",
 "37:EUR-EAS": "ld_blocks/grch37.eur.eas.loci.bed",
-"37:EAS-AFR": "ld_blocks/grch37.eas.afr.loci.bed",
 "37:EUR-EAS-AFR": "ld_blocks/grch37.eur.eas.afr.loci.bed",
 "38:EUR": "ld_blocks/grch38.eur.loci.bed",
-"38:AFR": "ld_blocks/grch38.afr.loci.bed",
-"38:EAS": "ld_blocks/grch38.eas.loci.bed",
 "38:EUR-AFR": "ld_blocks/grch38.eur.afr.loci.bed",
 "38:EUR-EAS": "ld_blocks/grch38.eur.eas.loci.bed",
-"38:EAS-AFR": "ld_blocks/grch38.eas.afr.loci.bed",
 "38:EUR-EAS-AFR": "ld_blocks/grch38.eur.eas.afr.loci.bed"}
 
 class IndBlocks(object):
@@ -46,7 +40,7 @@ class IndBlocks(object):
                         local_ld_blocks = pkg_resources.resource_filename(__name__, dft_location[regions])
                         self._regions = pd.read_csv(local_ld_blocks, delim_whitespace=True, dtype=dtype_dict)
                     except Exception as e:
-                        raise Exception("Fail population names specified. 'EUR', 'EUR-EAS', etc. for more values, check documentation." + str(e))
+                        raise Exception("Fail population names specified. '37:EUR', ':EUR-EAS', etc. for more values, check documentation." + str(e))
                 else:
                     try:
                         dtype_dict = {IndBlocks.CHRCOL: "category", IndBlocks.STARTCOL: int, IndBlocks.STOPCOL: int}
@@ -55,6 +49,8 @@ class IndBlocks(object):
                         raise Exception("Parsing LD blocks failed:" + str(e))
             elif type(regions) is pd.core.frame.DataFrame:
                 self._regions = regions
+            else:
+                raise Exception("Fail specfication on location name. Please specify it as a file path, '37:EUR', or similar valid input. see help.")
 
             for column in IndBlocks.REQ_COLS:
                 if column not in self._regions:
@@ -122,7 +118,7 @@ class GencodeBlocks(object):
             except Exception as e:
                 raise Exception("Data folder doesn't contain gencode files " + str(e))
         else:
-            if pf.is_file(regions):
+            if type(regions) is str or pf.is_file(regions):
                 try:
                     dtype_dict = {GencodeBlocks.CHRCOL: "category", GencodeBlocks.STARTCOL: int, GencodeBlocks.STOPCOL: int, GencodeBlocks.GENENAME: str}
                     self._regions = pd.read_csv(regions, dtype=dtype_dict, sep='\t')
@@ -131,11 +127,11 @@ class GencodeBlocks(object):
             else:
                 raise Exception("Please check your gencode file path" + str(e))
 
-            for column in IndBlocks.REQ_COLS:
+            for column in GencodeBlocks.REQ_COLS:
                 if column not in self._regions:
                     raise ValueError(f"{column}-column not found in regions.")
 
-            self._regions = self._regions[IndBlocks.REQ_COLS]
+            self._regions = self._regions[GencodeBlocks.REQ_COLS]
 
         return
 
