@@ -60,6 +60,8 @@ Please see the [wiki](https://github.com/mancusolab/focus/wiki) for more details
 
 Notes
 -----
+Version 0.802: Fix the bug that .gitignore includes *.tsv so that gencode files couldn't be pushed to github.
+
 Version 0.801: Added gencode_map_v38 and multiple LD block files in GRCh38. Fixed prior_prob bugs.
 
 Version 0.8: Added MA-FOCUS support. Added GWAS imputation using imp-G. Added additional choice for prior probability for causal genes (number of genes in the risk regions).
