@@ -5,9 +5,6 @@
 focus.py
 test_focus
 
-# some exception
-!pyfocus/data/gencode/gencode_map_v37.tsv
-
 *.sh
 *.tsv
 *.db
@@ -16,6 +13,10 @@ test_focus
 ._*
 
 .idea/
+
+# some exception
+!pyfocus/data/gencode/gencode_map_v37.tsv
+!pyfocus/data/gencode/gencode_map_v38.tsv
 
 # User-specific stuff
 .idea/**/workspace.xml
