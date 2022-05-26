@@ -1,4 +1,4 @@
-FOCUS
+FOCUS & MA-FOCUS
 =====
 FOCUS (Fine-mapping Of CaUsal gene Sets) is software to fine-map transcriptome-wide association study statistics at genomic risk regions. The software takes as input summary GWAS data along with eQTL weights and outputs a credible set of _genes_ to explain observed genomic risk.
 
@@ -12,7 +12,7 @@ FOCUS are described in:
 
 > [Probabilistic fine-mapping of transcriptome-wide association studies](https://www.nature.com/articles/s41588-019-0367-1). Nicholas Mancuso, Malika K. Freund, Ruth Johnson, Huwenbo Shi, Gleb Kichaev, Alexander Gusev, and Bogdan Pasaniuc. Nature Genetics 51, 675-682 (2019).
 
-MA-FOCUS are described in:
+MA-FOCUS (Multi-Ancestry Fine-mapping Of CaUsal gene Sets) is an extension of FOCUS that leverages summary GWAS data with eQTL weights from multiple ancestries to increase the precision of credible sets for causal genes. MA-FOCUS is described in:
 
 > Multi-ancestry fine-mapping improves precision to identify causal genes in transcriptome-wide association studies. Zeyun Lu<sup>\*</sup>, Shyamalika Gopalan<sup>\*</sup>, Dong Yuan, David V. Conti, Bogdan Pasaniuc, Alexander Gusev, Nicholas Mancuso.
 
