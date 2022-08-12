@@ -10,11 +10,11 @@ MA-FOCUS (Multi-Ancestry Fine-mapping Of CaUsal gene Sets) is an extension of FO
 
 FOCUS is described in:
 
-> [Probabilistic fine-mapping of transcriptome-wide association studies](https://www.nature.com/articles/s41588-019-0367-1). Nicholas Mancuso, Malika K. Freund, Ruth Johnson, Huwenbo Shi, Gleb Kichaev, Alexander Gusev, and Bogdan Pasaniuc. ***Nature Genetics*** 51, 675-682 (2019).
+> [Probabilistic fine-mapping of transcriptome-wide association studies](https://www.nature.com/articles/s41588-019-0367-1){:target="_blank"}. Nicholas Mancuso, Malika K. Freund, Ruth Johnson, Huwenbo Shi, Gleb Kichaev, Alexander Gusev, and Bogdan Pasaniuc. ***Nature Genetics*** 51, 675-682 (2019).
 
 MA-FOCUS is described in:
 
-> [Multi-ancestry fine-mapping improves precision to identify causal genes in transcriptome-wide association studies](https://www.cell.com/ajhg/fulltext/S0002-9297(22)00306-8). Zeyun Lu<sup>\*</sup>, Shyamalika Gopalan<sup>\*</sup>, Dong Yuan, David V. Conti, Bogdan Pasaniuc, Alexander Gusev, Nicholas Mancuso. ***American Journal of Human Genetics*** VOLUME 109, ISSUE 8, P1388-1404, AUGUST 04, 2022.
+> [Multi-ancestry fine-mapping improves precision to identify causal genes in transcriptome-wide association studies](https://www.cell.com/ajhg/fulltext/S0002-9297(22)00306-8){:target="_blank"}. Zeyun Lu<sup>\*</sup>, Shyamalika Gopalan<sup>\*</sup>, Dong Yuan, David V. Conti, Bogdan Pasaniuc, Alexander Gusev, Nicholas Mancuso. ***American Journal of Human Genetics*** VOLUME 109, ISSUE 8, P1388-1404, AUGUST 04, 2022.
 
 <sup>\*</sup> indicates equal contribution
 
