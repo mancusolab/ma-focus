@@ -80,8 +80,17 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, session):
 
     count = 0
     log.info("Starting individual model conversion")
+    
+    # check whether fusion_db has column DIR
+    DIR_IN_HEADER = "DIR" in fusion_db.columns
+
     for rdx, row in fusion_db.iterrows():
-        wgt_dir, wgt_name, g_name, chrom, txstart, txstop = row.DIR, row.WGT, row.ID, row.CHR, row.P0, row.P1
+        if DIR_IN_HEADER:
+            wgt_dir = row.DIR
+        else:
+            wgt_dir = local_dir
+
+        wgt_name, g_name, chrom, txstart, txstop = row.WGT, row.ID, row.CHR, row.P0, row.P1
 
         # METSIM.ADIPOSE.RNASEQ/METSIM.LINC00115.wgt.RDat LINC00115 1 761586 762902
         log.debug(f"Importing {wgt_name} model")
