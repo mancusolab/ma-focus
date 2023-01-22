@@ -115,7 +115,7 @@ def create_output(meta_data, attr, null_res, region):
 
     return df
 
-def align_data(gwas, ref_geno, wcollection, min_r2pred=0.7, max_impute=0.5, ridge=0.1):
+def align_data(gwas, ref_geno, wcollection, min_r2pred=0.7, max_impute=0.5, ridge=0.1, return_geno=False):
     """
     Align and merge gwas, LD reference, and eQTL weight data to the same reference alleles.
 
@@ -125,7 +125,7 @@ def align_data(gwas, ref_geno, wcollection, min_r2pred=0.7, max_impute=0.5, ridg
     :param min_r2pred: minimum average LD-based imputation accuracy allowed for expression weight SNP Z-scores (default = 0.7)
     :param max_impute: maximum fraction of SNPs allowed to be missing per gene, and will be imputed using LD (default = 0.5)
     :param ridge: ridge adjustment for LD estimation (default = 0.1)
-
+    :param return_geno: return the aligned genotype matrix in additional to LD matrix (default = False) 
     :return: tuple of aligned GWAS, eQTL weight-matrix W, gene-names list, LD-matrix V
     """
     log = logging.getLogger(pf.LOG)
@@ -240,6 +240,17 @@ def align_data(gwas, ref_geno, wcollection, min_r2pred=0.7, max_impute=0.5, ridg
     log.debug(f"Estimating LD for {len(ref_snps)} SNPs.")
     ldmat = ref_geno.estimate_ld(ref_snps, adjust=ridge)
 
+    if return_geno:
+        log.debug("Calculating genotype matrix for {len(ref_snps)} SNPs.")
+        G = ref_geno.get_geno(ref_snps)
+        n, p = G.shape
+        col_mean = np.nanmean(G, axis=0)
+
+        # impute missing with column mean
+        inds = np.where(np.isnan(G))
+        G[inds] = np.take(col_mean, inds[1])
+        aligned_geno = G
+
     # Run ImpG-Summary when GWAS statistics are not available for SNPs available in LD Ref
     miss_idx = ref_snps[pd.isna(ref_snps[pf.GWAS.ZCOL])].index
     nmiss_idx = ref_snps[pd.notna(ref_snps[pf.GWAS.ZCOL])].index
@@ -297,7 +308,10 @@ def align_data(gwas, ref_geno, wcollection, min_r2pred=0.7, max_impute=0.5, ridg
     wmat = wmat.T[ranks].T
     meta_data = meta_data.iloc[ranks].reset_index(drop = True)
 
-    return gwas, wmat, meta_data, ldmat
+    if return_geno:
+        return gwas, wmat, meta_data, ldmat, aligned_geno
+    else:
+        return gwas, wmat, meta_data, ldmat
 
 
 def estimate_cor(wmat, ldmat, intercept=False):
