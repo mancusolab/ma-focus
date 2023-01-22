@@ -12,7 +12,7 @@ __all__ = ["import_fusion", "import_predixcan"]
 
 COUNT = 250
 
-def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, session):
+def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_table, session):
     """
     Import weights from a FUSION Rdata into the FOCUS db.
 
@@ -21,6 +21,7 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, session):
     :param assay: technology assay to measure abundance
     :param use_ens_id: bool, query on ensembl ids instead of hgnc gene symbols
     :param from_gencode: bool, convert gencode_ids to ens_ids. Only works with use_ens_id == True
+    :param rsid_table: str, name of the rsid table to use
     :param session: sqlalchemy.Session object for the FOCUS db
 
     :return:  None
@@ -77,6 +78,16 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, session):
     res_map = defaultdict(list)
     for result in results:
         res_map[result["query"]].append(result)
+
+    # load rsid_table if we have one
+    dict_rsid_table = None
+    if rsid_table is not None:
+        log.info(f"Loading rsid table {rsid_table}")
+        df_rsid_table = pd.read_csv(rsid_table, sep="\t")
+        dict_rsid_table = {(str(chrom), pos): snp for chrom, pos, snp in zip(df_rsid_table["CHR"].values, 
+                                                                        df_rsid_table["POS"].values, 
+                                                                        df_rsid_table["SNP"].values)
+                                                                        }
 
     count = 0
     log.info("Starting individual model conversion")
@@ -241,6 +252,19 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, session):
                                  "pos": list(snps[3]),
                                  "a1": list(snps[4]),
                                  "a0": list(snps[5])})
+        if dict_rsid_table is not None:
+            # map chrom, pos to rsid
+            snp_info["snp"] = snp_info.apply(
+                lambda row: dict_rsid_table[(row.chrom, row.pos)] if (row.chrom, row.pos) in dict_rsid_table else None, 
+                axis=1
+            )
+            # filter out any SNPs that don't have an rsid
+            keep = snp_info.snp.notnull().values
+            if not np.all(keep):
+                log.warning(f"Unable to map {np.sum(~keep)}/{len(snp_info)} SNPs to rsids for {g_name}")
+            # subset to only valid SNPs
+            wgts = wgts[keep]
+            snp_info = snp_info[keep]
 
         # if we're using a sparse model there is no need to store info on zero'd SNPs
         keep = np.logical_not(np.isclose(wgts, 0))
