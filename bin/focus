@@ -1084,7 +1084,7 @@ def import_weights(args):
         if args.type == "predixcan":
             pyfocus.import_predixcan(args.path, args.name, args.tissue, args.assay, args.predixcan_method, session)
         else:
-            pyfocus.import_fusion(args.path, args.name, args.tissue, args.assay, args.use_ens_id, args.from_gencode, session)
+            pyfocus.import_fusion(args.path, args.name, args.tissue, args.assay, args.use_ens_id, args.from_gencode, args.rsid_table, session)
 
     except Exception as err:
         log.error(err)
@@ -1299,6 +1299,8 @@ def build_import_weights_parser(subp):
                       help="Query on ENSEMBL gene ID rather than HGNC gene symbol.")
     impt.add_argument("--from-gencode", default=False, action="store_true",
                       help="Query on GENCODE gene ID rather than HGNC gene symbol. Must be used with --use-ens-id.")
+    impt.add_argument("--rsid-table", default=None,
+                      help="Path to table mapping chromosome and position to SNP rsIDs.")
 
     impt.add_argument("--predixcan-method", default="ElasticNet",
                       help="Name of the prediction method (e.g., ElasticNet) used to fit weights.")
