@@ -1,26 +1,30 @@
+import importlib.resources as rsrc
 import warnings
 
-import pyfocus as pf
 import numpy as np
 import pandas as pd
-import pkg_resources
-
 import scipy.linalg as lin
 
 from pandas_plink import read_plink
 
-dft_location = {"37:EUR": "ld_blocks/grch37.eur.loci.bed",
-"37:AFR": "ld_blocks/grch37.afr.loci.bed",
-"37:EAS": "ld_blocks/grch37.eas.loci.bed",
-"37:EUR-AFR": "ld_blocks/grch37.eur.afr.loci.bed",
-"37:EUR-EAS": "ld_blocks/grch37.eur.eas.loci.bed",
-"37:EUR-EAS-AFR": "ld_blocks/grch37.eur.eas.afr.loci.bed",
-"38:EUR": "ld_blocks/grch38.eur.loci.bed",
-"38:AFR": "ld_blocks/grch38.afr.loci.bed",
-"38:EAS": "ld_blocks/grch38.eas.loci.bed",
-"38:EUR-AFR": "ld_blocks/grch38.eur.afr.loci.bed",
-"38:EUR-EAS": "ld_blocks/grch38.eur.eas.loci.bed",
-"38:EUR-EAS-AFR": "ld_blocks/grch38.eur.eas.afr.loci.bed"}
+import pyfocus as pf
+
+
+dft_location = {
+    "37:EUR": "ld_blocks/grch37.eur.loci.bed",
+    "37:AFR": "ld_blocks/grch37.afr.loci.bed",
+    "37:EAS": "ld_blocks/grch37.eas.loci.bed",
+    "37:EUR-AFR": "ld_blocks/grch37.eur.afr.loci.bed",
+    "37:EUR-EAS": "ld_blocks/grch37.eur.eas.loci.bed",
+    "37:EUR-EAS-AFR": "ld_blocks/grch37.eur.eas.afr.loci.bed",
+    "38:EUR": "ld_blocks/grch38.eur.loci.bed",
+    "38:AFR": "ld_blocks/grch38.afr.loci.bed",
+    "38:EAS": "ld_blocks/grch38.eas.loci.bed",
+    "38:EUR-AFR": "ld_blocks/grch38.eur.afr.loci.bed",
+    "38:EUR-EAS": "ld_blocks/grch38.eur.eas.loci.bed",
+    "38:EUR-EAS-AFR": "ld_blocks/grch38.eur.eas.afr.loci.bed",
+}
+
 
 class IndBlocks(object):
     """
@@ -35,26 +39,51 @@ class IndBlocks(object):
 
     def __init__(self, regions=None):
         if regions is None:
-            raise ValueError("Please specify independent regions location or default regions with '37:EUR', etc.")
+            raise ValueError(
+                "Please specify independent regions location or default regions with '37:EUR', etc."
+            )
         else:
             if type(regions) is str or pf.is_file(regions):
                 if regions in dft_location.keys():
                     try:
-                        dtype_dict = {IndBlocks.CHRCOL: "category", IndBlocks.STARTCOL: int, IndBlocks.STOPCOL: int}
-                        local_ld_blocks = pkg_resources.resource_filename(__name__, dft_location[regions])
-                        self._regions = pd.read_csv(local_ld_blocks, delim_whitespace=True, dtype=dtype_dict)
+                        dtype_dict = {
+                            IndBlocks.CHRCOL: "category",
+                            IndBlocks.STARTCOL: int,
+                            IndBlocks.STOPCOL: int,
+                        }
+                        path = rsrc.files(__name__) / dft_location[regions]
+                        with rsrc.as_file(path) as local_ld_blocks:
+                            self._regions = pd.read_csv(
+                                local_ld_blocks, delim_whitespace=True, dtype=dtype_dict
+                            )
                     except Exception as e:
-                        raise Exception("Fail population names specified. '37:EUR', ':EUR-EAS', etc. for more values, check documentation." + str(e))
+                        raise ValueError(
+                            (
+                                "Invalid population names specified. '37:EUR', ':EUR-EAS', etc. ",
+                                "For more values, check documentation." + str(e),
+                            )
+                        )
                 else:
                     try:
-                        dtype_dict = {IndBlocks.CHRCOL: "category", IndBlocks.STARTCOL: int, IndBlocks.STOPCOL: int}
-                        self._regions = pd.read_csv(regions, delim_whitespace=True, dtype=dtype_dict)
+                        dtype_dict = {
+                            IndBlocks.CHRCOL: "category",
+                            IndBlocks.STARTCOL: int,
+                            IndBlocks.STOPCOL: int,
+                        }
+                        self._regions = pd.read_csv(
+                            regions, delim_whitespace=True, dtype=dtype_dict
+                        )
                     except Exception as e:
                         raise Exception("Parsing LD blocks failed:" + str(e))
             elif type(regions) is pd.core.frame.DataFrame:
                 self._regions = regions
             else:
-                raise Exception("Fail specfication on location name. Please specify it as a file path, '37:EUR', or similar valid input. see help.")
+                raise Exception(
+                    (
+                        "Invalid specfication on location name. ",
+                        "Please specify it as a file path, '37:EUR', or similar valid input.",
+                    ),
+                )
 
             for column in IndBlocks.REQ_COLS:
                 if column not in self._regions:
@@ -78,10 +107,19 @@ class IndBlocks(object):
             start = min(df[IndBlocks.STARTCOL])
 
         # grab the intervals that overap the provided start and stop positions on same chromosome
-        locs = df.loc[df.apply(lambda x: min(x[IndBlocks.STOPCOL], stop) - max(x[IndBlocks.STARTCOL], start), axis=1) > 0]
+        locs = df.loc[
+            df.apply(
+                lambda x: min(x[IndBlocks.STOPCOL], stop)
+                - max(x[IndBlocks.STARTCOL], start),
+                axis=1,
+            )
+            > 0
+        ]
 
         if len(locs) == 0:
-            raise ValueError(f"No independent blocks found at region {chrom}{start}-{stop}")
+            raise ValueError(
+                f"No independent blocks found at region {chrom}{start}-{stop}"
+            )
 
         return IndBlocks(locs)
 
@@ -96,8 +134,11 @@ class IndBlocks(object):
         return len(self._regions.index)
 
 
-gencode_location = {"gencode37": "gencode/gencode_map_v37.tsv",
-"gencode38": "gencode/gencode_map_v38.tsv"}
+gencode_location = {
+    "gencode37": "gencode/gencode_map_v37.tsv",
+    "gencode38": "gencode/gencode_map_v38.tsv",
+}
+
 
 class GencodeBlocks(object):
     """
@@ -116,20 +157,39 @@ class GencodeBlocks(object):
             raise ValueError("Please specify gencode file location")
         elif regions == "gencode37" or regions == "gencode38":
             try:
-                dtype_dict = {GencodeBlocks.CHRCOL: "category", GencodeBlocks.STARTCOL: int, GencodeBlocks.STOPCOL: int, GencodeBlocks.GENENAME: str}
-                gencode_blocks = pkg_resources.resource_filename(__name__, gencode_location[regions])
-                self._regions = pd.read_csv(gencode_blocks, dtype=dtype_dict, sep = "\t")
+                dtype_dict = {
+                    GencodeBlocks.CHRCOL: "category",
+                    GencodeBlocks.STARTCOL: int,
+                    GencodeBlocks.STOPCOL: int,
+                    GencodeBlocks.GENENAME: str,
+                }
+                path = rsrc.files(__name__) / gencode_location[regions]
+                with rsrc.as_file(path) as gencode_blocks:
+                    self._regions = pd.read_csv(
+                        gencode_blocks, dtype=dtype_dict, sep="\t"
+                    )
             except Exception as e:
-                raise Exception("Data folder doesn't contain gencode files " + str(e))
+                raise ValueError("Data folder doesn't contain gencode files " + str(e))
         else:
             if type(regions) is str or pf.is_file(regions):
                 try:
-                    dtype_dict = {GencodeBlocks.CHRCOL: "category", GencodeBlocks.STARTCOL: int, GencodeBlocks.STOPCOL: int, GencodeBlocks.GENENAME: str}
-                    self._regions = pd.read_csv(regions, dtype=dtype_dict, sep='\t')
+                    dtype_dict = {
+                        GencodeBlocks.CHRCOL: "category",
+                        GencodeBlocks.STARTCOL: int,
+                        GencodeBlocks.STOPCOL: int,
+                        GencodeBlocks.GENENAME: str,
+                    }
+                    self._regions = pd.read_csv(regions, dtype=dtype_dict, sep="\t")
                 except Exception as e:
-                    raise Exception("Parsing your own gencode file failed. Make sure the path is correct and column has chr, start, stop, and gene_name:" + str(e))
+                    raise ValueError(
+                        (
+                            "Parsing your own gencode file failed. ",
+                            "Make sure the path is correct and column has chr, start, stop, and gene_name:"
+                            + str(e),
+                        ),
+                    )
             else:
-                raise Exception("Please check your gencode file path" + str(e))
+                raise ValueError("Please check specified gencode file path")
 
             for column in GencodeBlocks.REQ_COLS:
                 if column not in self._regions:
@@ -153,10 +213,22 @@ class GencodeBlocks(object):
             start = min(df[GencodeBlocks.STARTCOL])
 
         # grab the intervals that overap the provided start and stop positions on same chromosome
-        locs = df.loc[df.apply(lambda x: min(x[GencodeBlocks.STOPCOL], stop) - max(x[GencodeBlocks.STARTCOL], start), axis=1) > 0]
+        locs = df.loc[
+            df.apply(
+                lambda x: min(x[GencodeBlocks.STOPCOL], stop)
+                - max(x[GencodeBlocks.STARTCOL], start),
+                axis=1,
+            )
+            > 0
+        ]
 
         if len(locs) == 0:
-            raise Warning(f"No genes found on chromosome {chrom} between {start} and {stop}. Use 1e-3 instead. This warning makes no sense please check your gencode file")
+            raise Warning(
+                (
+                    f"No genes found on chromosome {chrom} between {start} and {stop}. ",
+                    "Use 1e-3 instead. This warning makes no sense please check your gencode file",
+                )
+            )
             prior_prob = 0.001
         else:
             prior_prob = 1 / len(locs[GencodeBlocks.GENENAME].unique())
@@ -170,6 +242,7 @@ class GencodeBlocks(object):
 
         return
 
+
 class LDRefPanel(object):
     CHRCOL = "chrom"
     SNPCOL = "snp"
@@ -181,9 +254,15 @@ class LDRefPanel(object):
 
     def __init__(self, snp_info, sample_info, geno):
         self._snp_info = snp_info
-        if len(snp_info) > 0 and pd.api.types.is_categorical_dtype(self._snp_info[LDRefPanel.A1COL]):
-            self._snp_info.loc[:, LDRefPanel.A1COL] = self._snp_info[LDRefPanel.A1COL].astype("str")
-            self._snp_info.loc[:, LDRefPanel.A2COL] = self._snp_info[LDRefPanel.A2COL].astype("str")
+        if len(snp_info) > 0 and pd.api.types.is_categorical_dtype(
+            self._snp_info[LDRefPanel.A1COL]
+        ):
+            self._snp_info.loc[:, LDRefPanel.A1COL] = self._snp_info[
+                LDRefPanel.A1COL
+            ].astype("str")
+            self._snp_info.loc[:, LDRefPanel.A2COL] = self._snp_info[
+                LDRefPanel.A2COL
+            ].astype("str")
         self._sample_info = sample_info
         self._geno = geno
         return
@@ -202,11 +281,19 @@ class LDRefPanel(object):
     def subset_by_pos(self, chrom, start=None, stop=None, clean_snps=True):
         df = self._snp_info
         if start is not None and stop is not None:
-            snps = df.loc[(df[LDRefPanel.CHRCOL] == chrom) & (df[LDRefPanel.BPCOL] >= start) & (df[LDRefPanel.BPCOL] <= stop)]
+            snps = df.loc[
+                (df[LDRefPanel.CHRCOL] == chrom)
+                & (df[LDRefPanel.BPCOL] >= start)
+                & (df[LDRefPanel.BPCOL] <= stop)
+            ]
         elif start is not None and stop is None:
-            snps = df.loc[(df[LDRefPanel.CHRCOL] == chrom) & (df[LDRefPanel.BPCOL] >= start)]
+            snps = df.loc[
+                (df[LDRefPanel.CHRCOL] == chrom) & (df[LDRefPanel.BPCOL] >= start)
+            ]
         elif start is None and stop is not None:
-            snps = df.loc[(df[LDRefPanel.CHRCOL] == chrom) & (df[LDRefPanel.BPCOL] <= stop)]
+            snps = df.loc[
+                (df[LDRefPanel.CHRCOL] == chrom) & (df[LDRefPanel.BPCOL] <= stop)
+            ]
         else:
             snps = df.loc[(df[LDRefPanel.CHRCOL] == chrom)]
 
@@ -216,10 +303,12 @@ class LDRefPanel(object):
 
         return LDRefPanel(snps, self._sample_info, self._geno)
 
-    def overlap_gwas(self, gwas, enable_impg = False):
+    def overlap_gwas(self, gwas, enable_impg=False):
         df = self._snp_info
         how = "inner" if not enable_impg else "right"
-        merged_snps = pd.merge(gwas, df, how=how, left_on=pf.GWAS.SNPCOL, right_on=pf.LDRefPanel.SNPCOL)
+        merged_snps = pd.merge(
+            gwas, df, how=how, left_on=pf.GWAS.SNPCOL, right_on=pf.LDRefPanel.SNPCOL
+        )
         return merged_snps
 
     def get_geno(self, snps=None):
@@ -249,7 +338,7 @@ class LDRefPanel(object):
 
             # adjust
             D = np.full(p, adjust)
-            D[:len(S)] = D[:len(S)] + (S**2 / n)
+            D[: len(S)] = D[: len(S)] + (S**2 / n)
 
             return np.dot(V.T * D, V), D
         else:

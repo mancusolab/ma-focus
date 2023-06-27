@@ -1,9 +1,10 @@
 import logging
 
 import pandas as pd
-import pyfocus as pf
 
 from sqlalchemy import create_engine
+
+import pyfocus as pf
 
 
 __all__ = ["import_fusion", "import_predixcan"]
@@ -12,7 +13,10 @@ __all__ = ["import_fusion", "import_predixcan"]
 
 COUNT = 250
 
-def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_table, session):
+
+def import_fusion(
+    path, name, tissue, assay, use_ens_id, from_gencode, rsid_table, session
+):
     """
     Import weights from a FUSION Rdata into the FOCUS db.
 
@@ -28,15 +32,17 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
     """
     log = logging.getLogger(pf.LOG)
 
-    import re
     import os
+    import re
     import warnings
 
     from collections import defaultdict
 
     import numpy as np
+
     try:
         import mygene
+
         # suppress warnings about R build
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -46,10 +52,10 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         raise
 
     log.info(f"Starting import from FUSION database {path}")
-    db_ref_panel = pf.RefPanel(ref_name=name, tissue=tissue, assay=assay)
+    db_ref_panel = pf.models.RefPanel(ref_name=name, tissue=tissue, assay=assay)
     ses = None
 
-    load_func = robj.r['load']
+    load_func = robj.r["load"]
     local_dir = os.path.dirname(os.path.abspath(path))
 
     # we need this to grab Ensembl IDs for genes
@@ -64,16 +70,26 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         genes = fusion_db.ID.values
 
     # we need to do batch queries in order to not get throttled by the mygene servers
-    
+
     log.info("Querying mygene servers for gene annotations")
     if use_ens_id:
-        results = mg.querymany(genes, scopes="ensembl.gene", verbose=False,
-                               fields="ensembl.gene,genomic_pos,symbol,ensembl.type_of_gene,alias", species="human")
+        results = mg.querymany(
+            genes,
+            scopes="ensembl.gene",
+            verbose=False,
+            fields="ensembl.gene,genomic_pos,symbol,ensembl.type_of_gene,alias",
+            species="human",
+        )
     else:
         # a lot of older gene expression datasets have outdated symbols. include
         # alias here to help match them up with ens-id
-        results = mg.querymany(genes, scopes="symbol,alias", verbose=False,
-                               fields="ensembl.gene,genomic_pos,symbol,ensembl.type_of_gene,alias", species="human")
+        results = mg.querymany(
+            genes,
+            scopes="symbol,alias",
+            verbose=False,
+            fields="ensembl.gene,genomic_pos,symbol,ensembl.type_of_gene,alias",
+            species="human",
+        )
 
     res_map = defaultdict(list)
     for result in results:
@@ -84,14 +100,18 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
     if rsid_table is not None:
         log.info(f"Loading rsid table {rsid_table}")
         df_rsid_table = pd.read_csv(rsid_table, sep="\t")
-        dict_rsid_table = {(str(chrom), pos): snp for chrom, pos, snp in zip(df_rsid_table["CHR"].values, 
-                                                                        df_rsid_table["POS"].values, 
-                                                                        df_rsid_table["SNP"].values)
-                                                                        }
+        dict_rsid_table = {
+            (str(chrom), pos): snp
+            for chrom, pos, snp in zip(
+                df_rsid_table["CHR"].values,
+                df_rsid_table["POS"].values,
+                df_rsid_table["SNP"].values,
+            )
+        }
 
     count = 0
     log.info("Starting individual model conversion")
-    
+
     # check whether fusion_db has column DIR
     DIR_IN_HEADER = "DIR" in fusion_db.columns
 
@@ -101,7 +121,13 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         else:
             wgt_dir = local_dir
 
-        wgt_name, g_name, chrom, txstart, txstop = row.WGT, row.ID, row.CHR, row.P0, row.P1
+        wgt_name, g_name, chrom, txstart, txstop = (
+            row.WGT,
+            row.ID,
+            row.CHR,
+            row.P0,
+            row.P1,
+        )
 
         # METSIM.ADIPOSE.RNASEQ/METSIM.LINC00115.wgt.RDat LINC00115 1 761586 762902
         log.debug(f"Importing {wgt_name} model")
@@ -129,7 +155,12 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
                 # nothing in db
                 continue
 
-            if not use_ens_id and hit["symbol"] != g_name and "alias" in hit and g_name not in hit["alias"]:
+            if (
+                not use_ens_id
+                and hit["symbol"] != g_name
+                and "alias" in hit
+                and g_name not in hit["alias"]
+            ):
                 # not direct match
                 continue
 
@@ -172,9 +203,13 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
             # we didn't get any hits from our query
             # just use the gene-name as ens-id...
             if use_ens_id:
-                log.warning(f"Unable to match {g_name} to Ensembl ID. Using ID for symbol")
+                log.warning(
+                    f"Unable to match {g_name} to Ensembl ID. Using ID for symbol"
+                )
             else:
-                log.warning(f"Unable to match {g_name} to Ensembl ID. Using symbol for ID")
+                log.warning(
+                    f"Unable to match {g_name} to Ensembl ID. Using symbol for ID"
+                )
             gene_info["geneid"] = g_name
             gene_info["type"] = None
 
@@ -186,15 +221,15 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         gene_info["txstop"] = txstop
 
         # get the multi-SNP method with the best cvR2
-        methods = np.array(robj.r['cv.performance'].colnames)
-        types = list(robj.r['cv.performance'].rownames)
+        methods = np.array(robj.r["cv.performance"].colnames)
+        types = list(robj.r["cv.performance"].rownames)
         if "rsq" not in types:
             raise ValueError(f"No R2 value for model {path}")
         if "pval" not in types:
             raise ValueError(f"No R2 p-value for model {path}")
 
         # grab the actual weights
-        wgts = np.array(robj.r['wgt.matrix'])
+        wgts = np.array(robj.r["wgt.matrix"])
 
         # sometimes weights are constant or only contain NANs; drop them
         keep = np.logical_not(np.isnan(np.std(wgts, axis=0)))
@@ -204,7 +239,7 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         rsq_idx = types.index("rsq")
         pval_idx = types.index("pval")
 
-        values = np.array(robj.r['cv.performance'])
+        values = np.array(robj.r["cv.performance"])
         v_shape = values.shape
 
         # is this always stored/retrieved as 2 x M ?
@@ -246,22 +281,30 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         # SNPs data frame
         # V1 V2 V3 V4 V5 V6
         # 11 rs2729762 0 77033699 G A
-        snps = robj.r['snps']
-        snp_info = pd.DataFrame({"snp": list(snps[1]),
-                                 "chrom": [str(chrom) for chrom in snps[0]],
-                                 "pos": list(snps[3]),
-                                 "a1": list(snps[4]),
-                                 "a0": list(snps[5])})
+        snps = robj.r["snps"]
+        snp_info = pd.DataFrame(
+            {
+                "snp": list(snps[1]),
+                "chrom": [str(chrom) for chrom in snps[0]],
+                "pos": list(snps[3]),
+                "a1": list(snps[4]),
+                "a0": list(snps[5]),
+            }
+        )
         if dict_rsid_table is not None:
             # map chrom, pos to rsid
             snp_info["snp"] = snp_info.apply(
-                lambda row: dict_rsid_table[(row.chrom, row.pos)] if (row.chrom, row.pos) in dict_rsid_table else None, 
-                axis=1
+                lambda row: dict_rsid_table[(row.chrom, row.pos)]
+                if (row.chrom, row.pos) in dict_rsid_table
+                else None,
+                axis=1,
             )
             # filter out any SNPs that don't have an rsid
             keep = snp_info.snp.notnull().values
             if not np.all(keep):
-                log.warning(f"Unable to map {np.sum(~keep)}/{len(snp_info)} SNPs to rsids for {g_name}")
+                log.warning(
+                    f"Unable to map {np.sum(~keep)}/{len(snp_info)} SNPs to rsids for {g_name}"
+                )
             # subset to only valid SNPs
             wgts = wgts[keep]
             snp_info = snp_info[keep]
@@ -271,11 +314,13 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
         wgts = wgts[keep]
         snp_info = snp_info[keep]
 
-        model = pf.build_model(gene_info, snp_info, db_ref_panel, wgts, ses, attrs, method)
+        model = pf.models.build_model(
+            gene_info, snp_info, db_ref_panel, wgts, ses, attrs, method
+        )
         session.add(model)
         try:
             session.commit()
-        except Exception as comm_err:
+        except Exception:
             session.rollback()
             raise Exception("Failed committing to db")
         count += 1
@@ -290,7 +335,7 @@ def import_fusion(path, name, tissue, assay, use_ens_id, from_gencode, rsid_tabl
 
 
 def export_fusion(path, session):
-    log = logging.getLogger(pf.LOG)
+    logging.getLogger(pf.LOG)
     raise NotImplementedError("export_fusion not implemented!")
     return
 
@@ -310,11 +355,13 @@ def import_predixcan(path, name, tissue, assay, method, session):
     """
     log = logging.getLogger(pf.LOG)
 
-    import re
     import os
-    import numpy as np
+    import re
 
     from collections import defaultdict
+
+    import numpy as np
+
     try:
         import mygene
     except ImportError:
@@ -326,8 +373,8 @@ def import_predixcan(path, name, tissue, assay, method, session):
     log.info(f"Starting import from PrediXcan database {path}")
     pred_engine = create_engine(f"sqlite:///{path}")
 
-    weights = pd.read_sql_table('weights', pred_engine)
-    extra = pd.read_sql_table('extra', pred_engine)
+    weights = pd.read_sql_table("weights", pred_engine)
+    extra = pd.read_sql_table("extra", pred_engine)
 
     def gencode2ensmble(x):
         idx = x.rfind(".")
@@ -339,14 +386,19 @@ def import_predixcan(path, name, tissue, assay, method, session):
 
     log.info("Querying mygene servers for gene annotations")
     mg = mygene.MyGeneInfo()
-    results = mg.querymany(genes, scopes='ensembl.gene', verbose=False,
-                           fields="genomic_pos_hg19,symbol,alias", species="human")
+    results = mg.querymany(
+        genes,
+        scopes="ensembl.gene",
+        verbose=False,
+        fields="genomic_pos_hg19,symbol,alias",
+        species="human",
+    )
 
     res_map = defaultdict(list)
     for result in results:
         res_map[result["query"]].append(result)
 
-    db_ref_panel = pf.RefPanel(ref_name=name, tissue=tissue, assay=assay)
+    db_ref_panel = pf.models.RefPanel(ref_name=name, tissue=tissue, assay=assay)
     ses = None
 
     count = 0
@@ -367,7 +419,11 @@ def import_predixcan(path, name, tissue, assay, method, session):
             if "notfound" in hit:
                 continue
 
-            if hit["symbol"] != g_name and "alias" in hit and g_name not in hit["alias"]:
+            if (
+                hit["symbol"] != g_name
+                and "alias" in hit
+                and g_name not in hit["alias"]
+            ):
                 continue
 
             if "genomic_pos_hg19" not in hit:
@@ -382,8 +438,8 @@ def import_predixcan(path, name, tissue, assay, method, session):
                 if not re.match("[0-9]{1,2}|X|Y", entry["chr"], re.IGNORECASE):
                     continue
 
-                txstart = entry['start']
-                txstop = entry['end']
+                txstart = entry["start"]
+                txstop = entry["end"]
                 break
 
             if txstart is not None:
@@ -400,11 +456,15 @@ def import_predixcan(path, name, tissue, assay, method, session):
         gene_info["txstart"] = txstart
         gene_info["txstop"] = txstop
 
-        snp_info = pd.DataFrame({"snp": gene.rsid.values,
-                                "chrom": [chrom] * len(gene),
-                                "pos": pos,
-                                "a1": gene.eff_allele.values,
-                                "a0": gene.ref_allele.values})
+        snp_info = pd.DataFrame(
+            {
+                "snp": gene.rsid.values,
+                "chrom": [chrom] * len(gene),
+                "pos": pos,
+                "a1": gene.eff_allele.values,
+                "a0": gene.ref_allele.values,
+            }
+        )
 
         wgts = gene.weight.values
 
@@ -419,11 +479,13 @@ def import_predixcan(path, name, tissue, assay, method, session):
             attrs["cv.R2.pval"] = gene_extra["pred.perf.pval"].values[0]
 
         # build model
-        model = pf.build_model(gene_info, snp_info, db_ref_panel, wgts, ses, attrs, method)
+        model = pf.models.build_model(
+            gene_info, snp_info, db_ref_panel, wgts, ses, attrs, method
+        )
         session.add(model)
         try:
             session.commit()
-        except Exception as comm_err:
+        except Exception:
             session.rollback()
             raise Exception("Failed committing to db")
 
@@ -434,12 +496,11 @@ def import_predixcan(path, name, tissue, assay, method, session):
     if count % COUNT != 0:
         log.info(f"Committed {count % COUNT} models to db")
 
-
     log.info(f"Finished import from PrediXcan database {path}")
     return
 
 
 def export_predixcan(path, session):
-    log = logging.getLogger(pf.LOG)
+    logging.getLogger(pf.LOG)
     raise NotImplementedError("export_predixcan not implemented!")
     return

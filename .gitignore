@@ -1,5 +1,7 @@
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+# version is auto-built by hatch, not need to store it...
+src/pyfocus/_version.py
 
 # Development-specific
 focus.py
@@ -15,8 +17,8 @@ test_focus
 .idea/
 
 # some exception
-!pyfocus/data/gencode/gencode_map_v37.tsv
-!pyfocus/data/gencode/gencode_map_v38.tsv
+!src/pyfocus/data/gencode/gencode_map_v37.tsv
+!src/pyfocus/data/gencode/gencode_map_v38.tsv
 
 # User-specific stuff
 .idea/**/workspace.xml

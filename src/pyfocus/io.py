@@ -8,10 +8,17 @@ def is_file(f):
     :param f:
     :return: True if `f` is file-like; False otherwise.
     """
-    return hasattr(f, 'read')
+    return hasattr(f, "read")
 
 
 def write_output(results, output, append=False):
-    results.to_csv(output, sep="\t", mode="a" if append else "w", header=not append, index=False, na_rep="NA",
-                   float_format="%.3g")
+    results.to_csv(
+        output,
+        sep="\t",
+        mode="a" if append else "w",
+        header=not append,
+        index=False,
+        na_rep="NA",
+        float_format="%.3g",
+    )
     return

@@ -1,0 +1,92 @@
+[project]
+name = "pyfocus"
+dynamic = ["version"]
+description = "Fine-map transcriptome-wide association studies"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+authors = [
+    { name = "Zeyun Lu", email = "zeyunlu@usc.edu" },
+    { name = "Ruth Johnson", email = "ruthjohnson@ucla.com" },
+    { name = "Nicholas Mancuso", email = "nmancuso@usc.edu" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "importlib-metadata; python_version<\"3.8\"",
+    "opencv-python",
+    "sqlalchemy",
+    "matplotlib>=3.1.0",
+    "seaborn",
+    "numpy",
+    "scipy",
+    "pandas>=0.23.0",
+    "pandas-plink"
+]
+
+[project.urls]
+Homepage = "https://github.com/mancusolab/ma-focus/"
+
+[project.scripts]
+focus = "pyfocus.cli:run_cli"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include= [
+    "src/pyfocus/data/ld_blocks/*.bed",
+    "src/pyfocus/data/gencode/*.tsv",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pyfocus/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/"]
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src/"]
+sources = ["src/"]
+
+
+[tool.hatch.envs.test]
+dependencies = [
+    "coverage[toml]",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.hatch.envs.test.scripts]
+run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
+run = "run-coverage --no-cov"
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I001"]
+ignore = ["E402", "E721", "E731", "E741", "F722", "F811"]
+ignore-init-module-imports = true
+
+[tool.ruff.isort]
+combine-as-imports = true
+lines-after-imports = 2
+lines-between-types = 1
+known-local-folder = ["src"]
+known-first-party = ["pyfocus"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+extra-standard-library = ["typing_extensions"]
+order-by-type = false

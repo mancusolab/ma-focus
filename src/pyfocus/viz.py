@@ -1,21 +1,23 @@
 import matplotlib
 
+
 matplotlib.use("Agg")  # forces matplotlib to not launch X11 window
-import matplotlib.pyplot as plt
+import cv2
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import pandas as pd
-import cv2
+
+from matplotlib.lines import Line2D
+from scipy import stats
+
 import pyfocus as pf
 
-from scipy import stats
-from matplotlib.patches import Patch
-from matplotlib.lines import Line2D
 
 __all__ = ["focus_plot"]
 
-def make_scatter(twas_df, idx = 1):
+
+def make_scatter(twas_df, idx=1):
     """
     Make a scatterplot of zscore values with gene names as xtick labels.
 
@@ -52,20 +54,67 @@ def make_scatter(twas_df, idx = 1):
 
     n_rows = len(twas_df.index)
     x_values = np.arange(1, n_rows + 1)
-    ax.scatter(x=x_values, y=twas_df[f"twas_p_pop{idx + 1}"].values, s=size_arr, c=color_arr, edgecolor="black")
+    ax.scatter(
+        x=x_values,
+        y=twas_df[f"twas_p_pop{idx + 1}"].values,
+        s=size_arr,
+        c=color_arr,
+        edgecolor="black",
+    )
 
     # create legend
     legend_elements = [
-        Line2D([0], [0], marker="o", color="w", label="[0.0, 0.2)",
-               markerfacecolor=custom_palette[0], markersize=size_palette[0], markeredgecolor="k"),
-        Line2D([1], [1], marker="o", color="w", label="[0.2, 0.4)",
-               markerfacecolor=custom_palette[1], markersize=size_palette[1], markeredgecolor="k"),
-        Line2D([2], [2], marker="o", color="w", label="[0.4, 0.6)",
-               markerfacecolor=custom_palette[2], markersize=size_palette[2], markeredgecolor="k"),
-        Line2D([3], [3], marker="o", color="w", label="[0.6, 0.8)",
-               markerfacecolor=custom_palette[3], markersize=size_palette[3], markeredgecolor="k"),
-        Line2D([4], [4], marker="o", color="w", label="[0.8, 1.0]",
-               markerfacecolor=custom_palette[4], markersize=size_palette[4], markeredgecolor="k")]
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            label="[0.0, 0.2)",
+            markerfacecolor=custom_palette[0],
+            markersize=size_palette[0],
+            markeredgecolor="k",
+        ),
+        Line2D(
+            [1],
+            [1],
+            marker="o",
+            color="w",
+            label="[0.2, 0.4)",
+            markerfacecolor=custom_palette[1],
+            markersize=size_palette[1],
+            markeredgecolor="k",
+        ),
+        Line2D(
+            [2],
+            [2],
+            marker="o",
+            color="w",
+            label="[0.4, 0.6)",
+            markerfacecolor=custom_palette[2],
+            markersize=size_palette[2],
+            markeredgecolor="k",
+        ),
+        Line2D(
+            [3],
+            [3],
+            marker="o",
+            color="w",
+            label="[0.6, 0.8)",
+            markerfacecolor=custom_palette[3],
+            markersize=size_palette[3],
+            markeredgecolor="k",
+        ),
+        Line2D(
+            [4],
+            [4],
+            marker="o",
+            color="w",
+            label="[0.8, 1.0]",
+            markerfacecolor=custom_palette[4],
+            markersize=size_palette[4],
+            markeredgecolor="k",
+        ),
+    ]
     plt.legend(handles=legend_elements, loc="best", title="PIP")
 
     n_rows = len(twas_df.index)
@@ -105,9 +154,19 @@ def heatmap(wcor):
     fig.subplots_adjust(bottom=0.20, left=0.28)
     mask = np.zeros_like(wcor, dtype=np.bool)
     mask[np.triu_indices_from(mask)] = True
-    ax = sns.heatmap(wcor, mask=mask, cmap="RdBu_r", square=True,
-                     linewidths=0, cbar=False, xticklabels=False, yticklabels=False, ax=None,
-                     vmin=-1, vmax=1)
+    ax = sns.heatmap(
+        wcor,
+        mask=mask,
+        cmap="RdBu_r",
+        square=True,
+        linewidths=0,
+        cbar=False,
+        xticklabels=False,
+        yticklabels=False,
+        ax=None,
+        vmin=-1,
+        vmax=1,
+    )
     ax.margins(2)
     ax.set_aspect("equal", "box")
     fig.canvas.draw()
@@ -119,13 +178,19 @@ def heatmap(wcor):
     # rotate heatmap to make upside-down triangle shape
     rows, cols, ch = img.shape
     M = cv2.getRotationMatrix2D((cols / 2, rows / 2), 45, 1)
-    dst = cv2.warpAffine(img, M, (cols, rows), borderMode=cv2.BORDER_CONSTANT,
-                         borderValue=(255, 255, 255))
+    dst = cv2.warpAffine(
+        img,
+        M,
+        (cols, rows),
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255),
+    )
 
     # trim extra whitespace
-    crop_img = dst[int(dst.shape[0] / 2.5):int(dst.shape[0] / 1.1)]
+    crop_img = dst[int(dst.shape[0] / 2.5) : int(dst.shape[0] / 1.1)]
 
     return crop_img
+
 
 def heatmap_colorbar():
     """
@@ -139,7 +204,13 @@ def heatmap_colorbar():
     ax1 = fig.add_axes([0.05, 0.80, 0.9, 0.15])
     norm = mpl.colors.Normalize(vmin=-1, vmax=1)
     cmap = mpl.cm.get_cmap("RdBu_r")
-    mpl.colorbar.ColorbarBase(ax1, cmap=cmap, norm=norm, orientation="horizontal", ticks=[-1, -.50, 0, .50, 1])
+    mpl.colorbar.ColorbarBase(
+        ax1,
+        cmap=cmap,
+        norm=norm,
+        orientation="horizontal",
+        ticks=[-1, -0.50, 0, 0.50, 1],
+    )
 
     # convert to numpy array format
     fig.canvas.draw()
@@ -159,9 +230,12 @@ def heatmap_colorbar():
 
     # fill in extra space with whitespace
     color = [255, 255, 255]
-    colorbar = cv2.copyMakeBorder(colorbar, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    colorbar = cv2.copyMakeBorder(
+        colorbar, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color
+    )
 
     return colorbar
+
 
 def focus_plot(wcor, twas_df):
     """
@@ -190,7 +264,9 @@ def focus_plot(wcor, twas_df):
 
         # combine plots
         numpy_vertical_concat = np.concatenate((scatter_plot, crop_img), axis=0)
-        numpy_vertical_concat = np.concatenate((numpy_vertical_concat, colorbar), axis=0)
+        numpy_vertical_concat = np.concatenate(
+            (numpy_vertical_concat, colorbar), axis=0
+        )
         # numpy_vertical_concat = cv2.resize(numpy_vertical_concat, (0, 0), fx=2.5, fy=2.5)
 
         fig = plt.figure()

@@ -1,14 +1,18 @@
 # am i optimizing prematurely? do we need this heavy machinary?
 
 import logging
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine
+
+from sqlalchemy import Column, create_engine, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, sessionmaker
+
 import pyfocus as pf
+
 
 Base = declarative_base()
 
 session = []
+
 
 def set_session(ssn):
     global session
@@ -18,7 +22,7 @@ def set_session(ssn):
 
 def get_session(idx=-1):
     global session
-    log = logging.getLogger(pf.LOG)
+    logging.getLogger(pf.LOG)
     return session[idx]
 
 
@@ -37,7 +41,6 @@ def load_db(path, idx=-1):
 
 
 def build_model(gene_info, snp_info, db_ref_panel, weights, ses, attrs, method):
-
     mol_feature = MolecularFeature(
         ens_gene_id=gene_info["geneid"],
         ens_tx_id=gene_info["txid"],
@@ -45,14 +48,10 @@ def build_model(gene_info, snp_info, db_ref_panel, weights, ses, attrs, method):
         type=gene_info["type"],
         chrom=gene_info["chrom"],
         tx_start=gene_info["txstart"],
-        tx_stop=gene_info["txstop"]
+        tx_stop=gene_info["txstop"],
     )
 
-    model = Model(
-        inference=method,
-        ref_panel=db_ref_panel,
-        mol_feature=mol_feature
-    )
+    model = Model(inference=method, ref_panel=db_ref_panel, mol_feature=mol_feature)
 
     if ses is None:
         ses = [None] * len(weights)
@@ -66,22 +65,19 @@ def build_model(gene_info, snp_info, db_ref_panel, weights, ses, attrs, method):
             effect_allele=snp_info.iloc[idx].a1,
             alt_allele=snp_info.iloc[idx].a0,
             effect=w,
-            std_error=ses[idx]
-        ) for idx, w in enumerate(weights)
+            std_error=ses[idx],
+        )
+        for idx, w in enumerate(weights)
     ]
 
     model.attrs = [
-        ModelAttribute(
-            attr_name=name,
-            value=value
-        ) for name, value in attrs.items()
+        ModelAttribute(attr_name=name, value=value) for name, value in attrs.items()
     ]
 
     return model
 
 
 class FocusMixin(object):
-
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     @declared_attr
@@ -90,7 +86,6 @@ class FocusMixin(object):
 
 
 class RefPanel(Base, FocusMixin):
-
     # Main attributes
     ref_name = Column(String(128), nullable=False)
     tissue = Column(String(128), nullable=False)
@@ -101,19 +96,18 @@ class RefPanel(Base, FocusMixin):
 
 
 class Model(Base, FocusMixin):
-
     # Main attribute
     inference = Column(String(128), nullable=False)
 
     # Link back to RefPanel
-    ref_id = Column(Integer, ForeignKey('refpanel.id'))
+    ref_id = Column(Integer, ForeignKey("refpanel.id"))
     ref_panel = relationship("RefPanel", back_populates="models")
 
     # Link to weights for this model
     weights = relationship("Weight", back_populates="model")
 
     # Link to molecular attributes
-    mol_id = Column(Integer, ForeignKey('molecularfeature.id'))
+    mol_id = Column(Integer, ForeignKey("molecularfeature.id"))
     mol_feature = relationship("MolecularFeature", back_populates="models")
 
     # Link to general attributes
@@ -121,7 +115,6 @@ class Model(Base, FocusMixin):
 
 
 class ModelAttribute(Base, FocusMixin):
-
     # Main
     attr_name = Column(String(128), nullable=False)
     value = Column(Float)
@@ -132,7 +125,6 @@ class ModelAttribute(Base, FocusMixin):
 
 
 class MolecularFeature(Base, FocusMixin):
-
     ens_gene_id = Column(String(64), nullable=False)
     ens_tx_id = Column(String(64))
 
@@ -147,7 +139,6 @@ class MolecularFeature(Base, FocusMixin):
 
 
 class Weight(Base, FocusMixin):
-
     snp = Column(String(128), nullable=False)
     chrom = Column(String(2), nullable=False)
     pos = Column(Integer, nullable=False)

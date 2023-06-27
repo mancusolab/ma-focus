@@ -1,16 +1,20 @@
-import pandas as pd
-import pyfocus as pf
+import warnings
+
 import numpy as np
+import pandas as pd
 
 from pandas_plink import read_plink
 
+import pyfocus as pf
 
-class ExprRef(object):
 
-    def __init__(self, geno, sample_info, var_info, pheno=None, covar=None, gene_info=None):
-        self._geno = geno                # IID x SNP
+class ExprRef:
+    def __init__(
+        self, geno, sample_info, var_info, pheno=None, covar=None, gene_info=None
+    ):
+        self._geno = geno  # IID x SNP
         self._sample_info = sample_info  # info on individuals
-        self._var_info = var_info        # info on genotype variants
+        self._var_info = var_info  # info on genotype variants
 
         self._pheno = pheno
         self._covar = covar
@@ -24,9 +28,13 @@ class ExprRef(object):
             self.align()
 
         if self._gene_info is None:
-            raise ValueError("Gene Info must be set before iterating through expression reference data")
+            raise ValueError(
+                "Gene Info must be set before iterating through expression reference data"
+            )
         elif self._pheno is None:
-            raise ValueError("Phenotype must be set before iterating through expression reference data")
+            raise ValueError(
+                "Phenotype must be set before iterating through expression reference data"
+            )
 
         # right now the covariates are a pandas data-frame
         # since data are aligned convert into matrix suitable for regression
@@ -39,7 +47,10 @@ class ExprRef(object):
             txstart = row.txstart
 
             # find overlapping SNPs
-            snps = self._var_info.loc[(self._var_info.chrom == chrom) & (np.abs(self._var_info.pos - txstart) <= bound)]
+            snps = self._var_info.loc[
+                (self._var_info.chrom == chrom)
+                & (np.abs(self._var_info.pos - txstart) <= bound)
+            ]
 
             # pull genotype data
             G = self._geno[snps.i.values, :].compute().T
@@ -92,8 +103,8 @@ class ExprRef(object):
 
     @classmethod
     def from_plink(cls, path):
-        with np.warnings.catch_warnings():
-            np.warnings.filterwarnings('ignore', 'FutureWarning')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "FutureWarning")
             bim, fam, bed = read_plink(path, verbose=False)
             bim.chrom = bim.chrom.astype(str)
 
