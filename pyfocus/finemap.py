@@ -110,8 +110,8 @@ def create_output(meta_data, attr, null_res, region):
         null_dict[f"ldregion_pop{i+1}"] = region[i]
         if i == (n_pop - 1) and i > 0:
             null_dict["pips_me"] = null_res[i+1]
-
-    df = df.append(null_dict, ignore_index=True)
+    # df = df.append(null_dict, ignore_index=True)
+    df = pd.concat([df, pd.DataFrame([null_dict])], ignore_index=True)
 
     return df
 
@@ -679,8 +679,8 @@ def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=
                         .filter(pf.ModelAttribute.model_id.in_(meta_data[i].model_id.values.astype(object)))  # why doesn't inte64 work!?!
                         .statement, con=session_tmp.connection())
         # convert from long to wide format
-        attr_tmp = attr_tmp.pivot("model_id", "attr_name", "value")
-        attr[i] = attr_tmp
+        # attr_tmp = attr_tmp.pivot("model_id", "attr_name", "value")
+        attr[i] = pd.pivot(attr_tmp, index="model_id", columns="attr_name", values="value")
         # clean up and return results
         region_tmp = str(ref_geno[i]).replace(" ", "")
         region[i] = region_tmp
