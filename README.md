@@ -20,15 +20,12 @@ MA-FOCUS is described in:
 
 Installing
 ----------
-The easiest way to install is with pip:
+The easiest way to install updated version is with pip:
 
-    pip install pyfocus
-
-Alternatively you can download the latest repo and then use setuptools:
 
     git clone https://github.com/mancusolab/ma-focus.git
     cd ma-focus
-    python setup.py install
+    pip install .
 
 *We currently only support Python3.6+.*
 
