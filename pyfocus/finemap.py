@@ -10,6 +10,61 @@ import pyfocus as pf
 
 __all__ = ["fine_map", "num_convert"]
 
+def num_convert(i):
+    """
+    A hashmap to convert numeric number to 1st, 2nd.
+
+    :param i: int natural number
+
+    :return: str 1st, 2nd, and so on
+    """
+
+    nth = {1: "1st",
+    2: "2nd",
+    3: "3rd",
+    4: "4th",
+    5: "5th",
+    6: "6th"}
+
+    return nth[i]
+
+def rearrange_columns(df, prior_prob, trait):
+    """
+    Re-arrange FOCUS output table columns for better user experience.
+
+    :param df: pandas.DataFrame containing all the necessary FOCUS columns
+    :param prioor_prob: float use this number to back the number of genes in the block
+
+    :return: pandas.DataFrame containing all the necessary FOCUS columns in order of non-pop-specific parameters, pop-specific non-pips parameters, pop-specific pips parameters, and me-pips parameters.
+    """
+    n_pop = np.sum(df.columns.str.contains("pips"))
+    n_pop = 1 if n_pop == 1 else n_pop - 1
+    df["block_genes"] = 1 / prior_prob
+    df["trait"] = trait
+    # move non-pop parameters upfront
+    for i in range(n_pop):
+        tmp = df.columns.str.contains(f"pop{i+1}")
+        tmp_name = df.columns.values[~tmp].tolist() + df.columns.values[tmp].tolist()
+        df = df[tmp_name]
+
+    # move twas_z, pips, and credible set in the endswith
+    for i in range(n_pop):
+        tmp1 = df.pop(f"twas_z_pop{i+1}")
+        tmp2 = df.pop(f"pips_pop{i+1}")
+        tmp3 = df.pop(f"in_cred_set_pop{i+1}")
+        df.insert(len(df.columns), f"twas_z_pop{i+1}", tmp1)
+        df.insert(len(df.columns), f"pips_pop{i+1}", tmp2)
+        df.insert(len(df.columns), f"in_cred_set_pop{i+1}", tmp3)
+
+        # rearrange pips_me to the last rows
+    if n_pop > 1:
+        tmp1 = df.pop("pips_me")
+        tmp2 = df.pop("in_cred_set_me")
+        df.insert(len(df.columns), "pips_me", tmp1)
+        df.insert(len(df.columns), "in_cred_set_me", tmp2)
+
+    return df
+
 def add_credible_set(df, credible_set=0.9):
     """
     Compute the credible gene set and add it to the dataframe.
@@ -383,8 +438,13 @@ def get_resid(zscores, swld, wcor):
     denom = mdot([intercept.T, wcor_inv, intercept])
     alpha = numer / denom
     resid = zscores - intercept * alpha
-
-    s2 = mdot([resid, wcor_inv, resid]) / (rank - 1)
+    
+    if rank > 1:
+        s2 = mdot([resid, wcor_inv, resid]) / (rank - 1)
+    else:
+        s2 = mdot([resid, wcor_inv, resid]) / rank 
+    if inter_se == 0:
+        log.debug("residual s2's se is 0 maybe because resid is too small, you may want to do not specify the intercept.")
     inter_se = np.sqrt(s2 / denom)
     inter_z = alpha / inter_se
 
@@ -451,26 +511,39 @@ def calculate_pips(meta_data, wmat, ldmat, max_genes, prior_prob, intercept):
     log = logging.getLogger(pf.LOG)
     n_pop = len(meta_data)
 
-    # Calculate prior chisq
+    # Calculate prior chisq, calculate twas correlation, and regressout intercept
     prior_chisq = [None] * n_pop
-    for i in range(n_pop):
-        wcor, swld = estimate_cor(wmat[i], ldmat[i], intercept = False)
-        solution, resid, rank_wcor, svs = lin.lstsq(wcor, np.asarray(meta_data[i]["twas_z"]))
-        prior_chisq[i] = np.dot(np.asarray(meta_data[i]["twas_z"]), solution)
-
-    # perform fine-mapping
-    log.debug("Estimating local TWAS correlation structure.")
     wcor = [None] * n_pop
     swld = [None] * n_pop
     for i in range(n_pop):
+        log.debug(f"Estimating local TWAS correlation structure for population {i + 1}.")
         wcor_tmp, swld_tmp = estimate_cor(wmat[i], ldmat[i], intercept)
+        sub_meta = meta_data[i].copy()
+        
+        if intercept:
+            # should really be done at the SNP level first ala Barfield et al 2018
+            log.debug(f"Regressing out average tagged pleiotropic associations for {num_convert(i + 1)} population")
+            twas_z_tmp, inter_z_tmp = get_resid(sub_meta.twas_z.values, swld_tmp, wcor_tmp)
+            sub_meta["twas_z"] = twas_z_tmp
+            sub_meta["inter_z"] = inter_z_tmp
+        else:
+            sub_meta["inter_z"] = None
+
+        log.debug(f"Calculating local prior chisq for population {i + 1}.")
+        solution, resid, rank_wcor, svs = lin.lstsq(wcor_tmp, np.asarray(meta_data[i]["twas_z"]))
+        prior_chisq[i] = np.dot(np.asarray(meta_data[i]["twas_z"]), solution)
         wcor[i] = wcor_tmp
         swld[i] = swld_tmp
+        meta_data[i] = sub_meta
 
+    log.debug("Estimating local TWAS correlation structure.")  
+
+    # perform fine-mapping
     null_res = [None] if n_pop == 1 else [None] * (n_pop + 1)
     m = len(meta_data[0])
     rm = range(m)
     k = m if max_genes > m else max_genes
+    # we want to do n_pop + 1 fine mapping, single ancestry, and then multi-ancestry
     for i in range(1 if n_pop == 1 else n_pop+1):
         pips_tmp = np.zeros(m)
         null_res_tmp = m * np.log(1 - prior_prob)
@@ -505,67 +578,16 @@ def calculate_pips(meta_data, wmat, ldmat, max_genes, prior_prob, intercept):
 
         if i == (len(null_res)-1) and i > 0:
             # store the me pips into first pop's metadata
-            meta_data[0].insert(len(meta_data[0].columns), "pips_me", pips_tmp)
+            meta_data[0]["pips_me"] = pips_tmp
         else:
-            meta_data[i].insert(len(meta_data[i].columns), "pips", pips_tmp)
+            # starting the second pop, it will have copy of piece warning even though I use .loc
+            sub_meta = meta_data[i].copy()
+            sub_meta["pips"] = pips_tmp
+            meta_data[i] = sub_meta
         null_res[i] = null_res_tmp
-
     return meta_data, null_res, wcor
 
-def num_convert(i):
-    """
-    A hashmap to convert numeric number to 1st, 2nd.
 
-    :param i: int natural number
-
-    :return: str 1st, 2nd, and so on
-    """
-
-    nth = {1: "1st",
-    2: "2nd",
-    3: "3rd",
-    4: "4th",
-    5: "5th",
-    6: "6th"}
-
-    return nth[i]
-
-def rearrange_columns(df, prior_prob, trait):
-    """
-    Re-arrange FOCUS output table columns for better user experience.
-
-    :param df: pandas.DataFrame containing all the necessary FOCUS columns
-    :param prioor_prob: float use this number to back the number of genes in the block
-
-    :return: pandas.DataFrame containing all the necessary FOCUS columns in order of non-pop-specific parameters, pop-specific non-pips parameters, pop-specific pips parameters, and me-pips parameters.
-    """
-    n_pop = np.sum(df.columns.str.contains("pips"))
-    n_pop = 1 if n_pop == 1 else n_pop - 1
-    df["block_genes"] = 1 / prior_prob
-    df["trait"] = trait
-    # move non-pop parameters upfront
-    for i in range(n_pop):
-        tmp = df.columns.str.contains(f"pop{i+1}")
-        tmp_name = df.columns.values[~tmp].tolist() + df.columns.values[tmp].tolist()
-        df = df[tmp_name]
-
-    # move twas_z, pips, and credible set in the endswith
-    for i in range(n_pop):
-        tmp1 = df.pop(f"twas_z_pop{i+1}")
-        tmp2 = df.pop(f"pips_pop{i+1}")
-        tmp3 = df.pop(f"in_cred_set_pop{i+1}")
-        df.insert(len(df.columns), f"twas_z_pop{i+1}", tmp1)
-        df.insert(len(df.columns), f"pips_pop{i+1}", tmp2)
-        df.insert(len(df.columns), f"in_cred_set_pop{i+1}", tmp3)
-
-        # rearrange pips_me to the last rows
-    if n_pop > 1:
-        tmp1 = df.pop("pips_me")
-        tmp2 = df.pop("in_cred_set_me")
-        df.insert(len(df.columns), "pips_me", tmp1)
-        df.insert(len(df.columns), "in_cred_set_me", tmp2)
-
-    return df
 
 def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=False, max_genes=3, ridge=0.1, prior_prob=1e-3, credible_level=0.9, plot=False, max_impute=0.5, min_r2pred=0.7, tissue_pr_gene = False, trait = "trait"):
     """
@@ -618,7 +640,6 @@ def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=
     # Get common genes (genes-tissue pair) across populations
     # if genes are not prioritized by tissue, use ens_gene_id, tissue, and model_id to be identifier
     # if genes are prioritized by tissue, use ens_gene_id, and model_id to be identifier
-    # import pdb; pdb.set_trace()
     gene_identifier = ["ens_gene_id", "model_id", "ref_name"] if tissue_pr_gene else ["ens_gene_id", "model_id", "tissue", "ref_name"]
     gene_set = meta_data[0][gene_identifier]
     for i in range(n_pop - 1):
@@ -630,38 +651,23 @@ def fine_map(gwas, wcollection, ref_geno, block, intercept=False, heterogeneity=
     else:
         log.info(f"Find {len(gene_set)} common genes to be fine-mapped at region {block}.")
 
-    # foo columns to get the index
-    gene_set.insert(len(gene_set.columns), "foo", "foo")
+    log.info(f"Running TWAS.")
+    # to select genes in wmat and meta data
+    gene_set = gene_set.reset_index(names="idx")
     for i in range(n_pop):
         df_tmp = pd.merge(meta_data[i], gene_set, how = "left", on = gene_identifier)
-        idx = df_tmp[pd.notna(df_tmp.foo)].index
-        wmat[i] = wmat[i].T[idx].T
-        meta_data[i] = meta_data[i].iloc[idx, :]
-
-    # run local TWAS
-    for i in range(n_pop):
-
-        if n_pop == 1:
-            log.info(f"Running TWAS for the single population.")
-        else:
-            log.info(f"Running TWAS for {num_convert(i + 1)} population.")
+        idx = np.where(~np.isnan(df_tmp.idx.values))[0]
+        sub_wmat = wmat[i].T[idx].T
+        sub_meta = meta_data[i].iloc[idx, :].copy()
 
         zscores_tmp = []
-        for idx, weights in enumerate(wmat[i].T):
-            log.debug(f"Computing TWAS association statistic for gene {meta_data[i].iloc[idx]['ens_gene_id']}.")
+        for idx, weights in enumerate(sub_wmat.T):
+            log.debug(f"Computing TWAS association statistic for gene {sub_meta.iloc[idx]['ens_gene_id']}.")
             beta, se = assoc_test(weights, gwas[i], ldmat[i], heterogeneity)
             zscores_tmp.append(beta / se)
-        meta_data[i].insert(len(meta_data[i].columns), "twas_z", zscores_tmp)
-
-    for i in range(n_pop):
-        if intercept:
-            # should really be done at the SNP level first ala Barfield et al 2018
-            log.debug(f"Regressing out average tagged pleiotropic associations for {num_convert(i + 1)} population")
-            twas_z_tmp, inter_z_tmp = get_resid(zscores[i], swld[i], wcor[i])
-            meta_data[i].insert(len(meta_data[i].columns), "twas_z", twas_z_tmp)
-            meta_data[i].insert(len(meta_data[i].columns), "inter_z", inter_z_tmp)
-        else:
-            meta_data[i].insert(len(meta_data[i].columns), "inter_z", None)
+        sub_meta["twas_z"] = zscores_tmp
+        wmat[i] = sub_wmat
+        meta_data[i] = sub_meta
 
     # calculate pips for single pop, and me.
     log.info(f"Calculating PIPs.")
