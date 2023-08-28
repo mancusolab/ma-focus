@@ -442,9 +442,11 @@ def get_resid(zscores, swld, wcor):
     if rank > 1:
         s2 = mdot([resid, wcor_inv, resid]) / (rank - 1)
     else:
-        s2 = mdot([resid, wcor_inv, resid]) / rank 
-    if inter_se == 0:
-        log.debug("residual s2's se is 0 maybe because resid is too small, you may want to do not specify the intercept.")
+        s2 = mdot([resid, wcor_inv, resid])
+    
+    if s2 == 0:
+        log.debug("residual s2 is 0 maybe because resid is too small, you may want to do not specify the intercept.")
+    
     inter_se = np.sqrt(s2 / denom)
     inter_z = alpha / inter_se
 
