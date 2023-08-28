@@ -444,7 +444,7 @@ def get_resid(zscores, swld, wcor):
     else:
         s2 = mdot([resid, wcor_inv, resid])
     
-    if s2 == 0:
+    if np.isclose(s2, 0) :
         log.debug("residual s2 is 0 maybe because resid is too small, you may want to do not specify the intercept.")
     
     inter_se = np.sqrt(s2 / denom)
