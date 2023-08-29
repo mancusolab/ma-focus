@@ -20,15 +20,12 @@ MA-FOCUS is described in:
 
 Installing
 ----------
-The easiest way to install is with pip:
+The easiest way to install updated version is with pip:
 
-    pip install pyfocus
-
-Alternatively you can download the latest repo and then use setuptools:
 
     git clone https://github.com/mancusolab/ma-focus.git
     cd ma-focus
-    python setup.py install
+    pip install .
 
 *We currently only support Python3.6+.*
 
@@ -54,6 +51,8 @@ Please see the [wiki](https://github.com/mancusolab/ma-focus/wiki) for more deta
 
 Notes
 -----
+Version 0.803: Fix the bugs in pandas/numpy outdated version, intercept.
+
 Version 0.802: Fix the bug that .gitignore includes *.tsv so that gencode files couldn't be pushed to github.
 
 Version 0.801: Added gencode_map_v38 and multiple LD block files in GRCh38. Fixed prior_prob bugs.

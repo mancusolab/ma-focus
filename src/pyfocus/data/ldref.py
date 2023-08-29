@@ -346,7 +346,5 @@ class LDRefPanel(object):
 
     @classmethod
     def parse_plink(cls, path):
-        with np.warnings.catch_warnings():
-            np.warnings.filterwarnings("ignore", "FutureWarning")
-            bim, fam, bed = read_plink(path, verbose=False)
+        bim, fam, bed = read_plink(path, verbose=False)
         return LDRefPanel(bim, fam, bed)
