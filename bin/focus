@@ -817,8 +817,12 @@ def run_twas(args):
                         raise ValueError(f"Numeric prior probability {arg_prior_prob} is invalid.")
                 except ValueError:
                     gencodeBlocks = pyfocus.GencodeBlocks(args.prior_prob)
-                    prior_prob = gencodeBlocks.subset_by_pos(chrom, start, stop)
-                    log.info(f"Using gencode file prior probability {prior_prob}.")
+                    prior_prob, len_gene = gencodeBlocks.subset_by_pos(chrom, start, stop)
+                    if len_gene == 0:
+                        log.warning(f"No genes found on chromosome {chrom} between {start} and {stop}. Skipping.")
+                        continue
+                    else:
+                        log.info(f"Using gencode file prior probability {prior_prob}.")
 
                 # grab local GWAS data
                 local_gwas = [None] * n_pop
