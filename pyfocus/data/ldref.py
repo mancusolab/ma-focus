@@ -156,12 +156,11 @@ class GencodeBlocks(object):
         locs = df.loc[df.apply(lambda x: min(x[GencodeBlocks.STOPCOL], stop) - max(x[GencodeBlocks.STARTCOL], start), axis=1) > 0]
 
         if len(locs) == 0:
-            raise Warning(f"No genes found on chromosome {chrom} between {start} and {stop}. Use 1e-3 instead. This warning makes no sense please check your gencode file")
             prior_prob = 0.001
         else:
             prior_prob = 1 / len(locs[GencodeBlocks.GENENAME].unique())
 
-        return prior_prob
+        return prior_prob, len(locs)
 
     def __iter__(self):
         for row in self._regions.itertuples(name=None):
